@@ -3,3 +3,5 @@ pydantic==1.10.*
 sqlalchemy==2.0.*
 uvicorn==0.22.0
 alembic==1.11.0
+email-validator==2.0.0.post2
+psycopg2-binary==2.9.6

@@ -1,24 +1,9 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey, create_engine, String
-from sqlalchemy.orm import sessionmaker, mapped_column, Mapped, DeclarativeBase
-from sqlalchemy.orm import MappedAsDataclass
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import mapped_column, Mapped
 
 from cremusic.utils import now
-
-# DATABASE_URL = "postgresql://user:password@postgresserver/db"
-DATABASE_URL = "sqlite:///./cremusic.db"
-
-engine = create_engine(
-    DATABASE_URL, connect_args={"check_same_thread": False}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-class Base(
-    MappedAsDataclass,
-    DeclarativeBase,
-):
-    pass
-
+from cremusic.db import Base
 
 class BookCodeConfig(Base):
     __tablename__ = "config"
@@ -26,8 +11,6 @@ class BookCodeConfig(Base):
     required_unlock: Mapped[bool]
     global_code: Mapped[str]
     secret: Mapped[str]
-    test: Mapped[str]
-
 
 
 class BookCode(Base):
@@ -52,9 +35,14 @@ class Book(Base):
         default_factory=now
     )
 
-    modified_by: Mapped[str] = mapped_column(String(256), default="system")
-    modified_date: Mapped[datetime] = mapped_column(
-        default_factory=now
+    modified_by: Mapped[str | None] = mapped_column(
+        String(256),
+        nullable=True,
+        default=None
+    )
+    modified_date: Mapped[datetime | None] = mapped_column(
+        nullable=True,
+        default=None
     )
 
 
@@ -77,9 +65,14 @@ class Episode(Base):
         default_factory=now
     )
 
-    modified_by: Mapped[str] = mapped_column(String(256), default="system")
-    modified_date: Mapped[datetime] = mapped_column(
-        default_factory=now
+    modified_by: Mapped[str | None] = mapped_column(
+        String(256),
+        nullable=True,
+        default=None
+    )
+    modified_date: Mapped[datetime | None] = mapped_column(
+        nullable=True,
+        default=None
     )
 
 
@@ -100,9 +93,9 @@ class StatisticLog(Base):
     __tablename__  = "statistic_log"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(256))
-    email: Mapped[str | None] = mapped_column(String(256))
     code: Mapped[str] = mapped_column(String(64))
     telephone: Mapped[str] = mapped_column(String(16))
+    email: Mapped[str | None] = mapped_column(String(256), default=None)
 
 
 class Video(Base):
@@ -115,4 +108,3 @@ class Video(Base):
     link: Mapped[str | None] = mapped_column(String(1024))
     thumbnail: Mapped[str | None] = mapped_column(String(1024))
     duration: Mapped[int] = mapped_column(default=0)
-

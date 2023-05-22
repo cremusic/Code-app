@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     pg_host: str = "localhost"
     pg_port: int = 5432
     pg_user: str = "postgres"
-    pg_password: SecretStr = SecretStr("postgres")
+    pg_password: SecretStr = SecretStr("mypassword")
     pg_dbname: str = "pokemon"
 
 
