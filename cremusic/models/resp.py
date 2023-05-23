@@ -27,3 +27,43 @@ class PaginatedBooks(BaseResponse):
     next_token: int
     required_unlock: bool 
     data: list[Book]
+
+
+class Episode(BaseResponse):
+    # id	integer($int64)
+    # bookId	integer($int64)
+    # name	string
+    # author	string
+    # artist	string
+    # backgroundImageUrl	string
+    # backgroundColorCode	integer($int32)
+    # unlocked	boolean
+    # totalVideos	integer($int32)
+
+    id: int
+    book_id: int
+    name: str | None
+    author: str | None
+    artist: str | None
+    background_image_url: str | None
+    background_color_code: int | None
+    unlocked: bool
+    total_videos: int
+
+    class Config:
+        orm_mode = True
+
+
+class PaginatedEpisodes(BaseResponse):
+    next_token: int
+    data: list[Episode]
+
+
+class NotFountResponse(BaseResponse):
+    error: str = "not_found"
+    message: str
+
+
+class ServerErrorResponse(BaseResponse):
+    error: str = "server_error"
+    message: str

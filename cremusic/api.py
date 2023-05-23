@@ -1,6 +1,7 @@
 from fastapi import Depends
 from fastapi.routing import APIRouter
-from sqlalchemy import select
+from fastapi.responses import JSONResponse
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
 from cremusic.models import req, resp, db
@@ -53,11 +54,7 @@ def book_code(
         else:
             # create new
             ses.add(
-                db.StatisticLog(
-                    telephone=body.telephone,
-                    code=code,
-                    name=body.name,
-                )
+                db.StatisticLog(telephone=body.telephone, code=code, name=body.name) # type: ignore
             )
         ses.commit()
     return resp.CheckBookCodeResponse(
@@ -67,7 +64,7 @@ def book_code(
 
 @api_router.get("/books", response_model=resp.PaginatedBooks)
 def get_books(
-    paging: req.ListBookPaginatorReq = Depends(req.ListBookPaginatorReq),
+    paging: req.PaginationParams = Depends(req.PaginationParams),
     ses: Session = Depends(get_session),
 ):
     """Get all books"""
@@ -94,10 +91,82 @@ def get_book_videos(book_id: int):
     pass
 
 
-@api_router.get("/books/{book_id}/episodes")
-def get_book_episodes(book_id: int):
+@api_router.get("/books/{book_id}/episodes", response_model=resp.PaginatedEpisodes)
+def get_book_episodes(
+    book_id: int,
+    query: req.PaginationWithBookCode = Depends(req.PaginationWithBookCode),
+    ses: Session = Depends(get_session),
+):
     """Get episodes by book id"""
-    pass
+    # get the book by book id
+    book = ses.execute(
+        select(db.Book).where(db.Book.id == book_id)
+    ).scalar()
+    if not book:
+        return JSONResponse(
+            status_code=404,
+            content=resp.NotFountResponse(message=f"Book {book_id} not found").dict()
+        )
+    # get global config
+    config = ses.execute(
+        select(db.BookCodeConfig).limit(1)
+    ).scalar()
+    if not config:
+        return JSONResponse(
+            status_code=500,
+            content=resp.ServerErrorResponse(message="Global config not found").dict()
+        )
+
+    # FIXME: bellow seems incorrect, it should be if the book is required to unlock,
+    # then check if the book code is provided and valid
+
+    # if book code is provided, check if it is valid
+    if query.book_code:
+        if config.required_unlock or config.global_code != query.book_code:
+            # check if book code is valid
+            book_code_exists = ses.execute(
+                select(db.BookCode.id)
+                .filter(
+                    db.BookCode.code == query.book_code,
+                    db.BookCode.book_id == book_id
+                )
+                .limit(1)
+            ).scalar()
+            if not book_code_exists:
+                return JSONResponse(
+                    status_code=404,
+                    content=resp.NotFountResponse(
+                        message=f"Book code {query.book_code} not found"
+                    ).dict()
+                )
+    # list episodes by book id
+    # count total videos of each episode
+    episodes = (
+        ses.query(
+            db.Episode,
+            func.count(db.Video.id).label("total_videos"),
+        )
+        .group_by(db.Episode.id)
+        .where(
+            db.Episode.book_id == book_id,
+            db.Episode.id > query.next_token,
+        )
+        .order_by(db.Episode.id.asc())
+        .limit(query.limit)
+        .all()
+    )
+    
+    unlocked = bool(query.book_code)
+    paginated_data = []
+    for episode, total_videos in episodes:
+        episode.total_videos = total_videos
+        episode.unlocked = unlocked
+        paginated_data.append(resp.Episode.from_orm(episode))
+    return resp.PaginatedEpisodes(
+        next_token=episodes[-1][0].id if episodes else 0,
+        data=paginated_data,
+    )
+
 
 
 @api_router.post("/admin/config")
