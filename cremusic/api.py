@@ -1,7 +1,8 @@
 from fastapi import Depends
 from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
-from sqlalchemy import exists, func, select
+from fastapi.exceptions import HTTPException
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from cremusic.models import req, resp, db
@@ -9,6 +10,54 @@ from cremusic.db import get_session
 
 api_router = APIRouter(prefix="/v1")
 index_router = APIRouter()
+
+
+def get_global_config(ses: Session):
+    # get global config
+    config = ses.execute(
+        select(db.BookCodeConfig).limit(1)
+    ).scalar()
+    if not config:
+        raise HTTPException(
+            status_code=500,
+            detail=resp.ServerErrorResponse(
+                messages=["Global config not found"]
+            ).dict()
+        )
+    return config
+
+
+def get_book(ses: Session, book_id: int):
+    book = ses.execute(
+        select(db.Book).where(db.Book.id == book_id)
+    ).scalar()
+    if not book:
+        raise HTTPException(
+            status_code=404,
+            detail=resp.NotFountResponse(
+                messages=[f"Book {book_id} not found"]
+            ).dict()
+        )
+    return book
+
+
+def check_book_code(ses, book_id: int, book_code: str):
+    # check if book code is valid
+    book_code_exists = ses.execute(
+        select(db.BookCode.id)
+        .filter(
+            db.BookCode.code == book_code,
+            db.BookCode.book_id == book_id
+        )
+        .limit(1)
+    ).scalar()
+    if not book_code_exists:
+        raise HTTPException(
+            status_code=404,
+            detail=resp.NotFountResponse(
+                messages=[f"Book code {book_code} not found"]
+            ).dict()
+        )
 
 
 @index_router.get("/tokenInfo")
@@ -84,11 +133,51 @@ def get_books(
     )
 
 
-
 @api_router.get("/books/{book_id}/videos")
-def get_book_videos(book_id: int):
+def get_book_videos(
+    book_id: int,
+    query: req.PaginationWithBookCode = Depends(req.PaginationWithBookCode),
+    ses: Session = Depends(get_session),
+):
     """Get videos by book id"""
-    pass
+    # get the book by book id
+    get_book(ses, book_id)
+    # get global config
+    config = get_global_config(ses)
+
+    # if book code is provided, check if it is valid
+    if query.book_code:
+        if config.required_unlock or config.global_code != query.book_code:
+            # check if book code is valid
+            check_book_code(ses, book_id, query.book_code)
+    # list episodes by book id
+    # count total videos of each episode
+    videos = (
+        ses.query(
+            db.Video,
+        )
+        .join(db.Episode, db.Episode.id == db.Video.book_episode_id, isouter=True)
+        .where(
+            db.Episode.book_id == book_id,
+            db.Video.id > query.next_token,
+        )
+        .order_by(db.Video.id.asc())
+        .limit(query.limit)
+        .all()
+    )
+
+    unlocked = bool(query.book_code)
+    paginated_data = []
+    for video in videos:
+        video.unlocked = unlocked
+        if not unlocked:
+            video.link = None
+            video.video_id = None
+        paginated_data.append(resp.Video.from_orm(video))
+    return resp.PaginatedVideos(
+        next_token=videos[-1].id if videos else 0,
+        data=paginated_data,
+    )
 
 
 @api_router.get("/books/{book_id}/episodes", response_model=resp.PaginatedEpisodes)
@@ -99,23 +188,9 @@ def get_book_episodes(
 ):
     """Get episodes by book id"""
     # get the book by book id
-    book = ses.execute(
-        select(db.Book).where(db.Book.id == book_id)
-    ).scalar()
-    if not book:
-        return JSONResponse(
-            status_code=404,
-            content=resp.NotFountResponse(message=f"Book {book_id} not found").dict()
-        )
+    get_book(ses, book_id)
     # get global config
-    config = ses.execute(
-        select(db.BookCodeConfig).limit(1)
-    ).scalar()
-    if not config:
-        return JSONResponse(
-            status_code=500,
-            content=resp.ServerErrorResponse(message="Global config not found").dict()
-        )
+    config = get_global_config(ses)
 
     # FIXME: bellow seems incorrect, it should be if the book is required to unlock,
     # then check if the book code is provided and valid
@@ -124,21 +199,7 @@ def get_book_episodes(
     if query.book_code:
         if config.required_unlock or config.global_code != query.book_code:
             # check if book code is valid
-            book_code_exists = ses.execute(
-                select(db.BookCode.id)
-                .filter(
-                    db.BookCode.code == query.book_code,
-                    db.BookCode.book_id == book_id
-                )
-                .limit(1)
-            ).scalar()
-            if not book_code_exists:
-                return JSONResponse(
-                    status_code=404,
-                    content=resp.NotFountResponse(
-                        message=f"Book code {query.book_code} not found"
-                    ).dict()
-                )
+            check_book_code(ses, book_id, query.book_code)
     # list episodes by book id
     # count total videos of each episode
     episodes = (
@@ -155,7 +216,7 @@ def get_book_episodes(
         .limit(query.limit)
         .all()
     )
-    
+
     unlocked = bool(query.book_code)
     paginated_data = []
     for episode, total_videos in episodes:
