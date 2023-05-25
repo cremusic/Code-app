@@ -51,8 +51,8 @@ class Video(BaseResponse):
     link: str | None
     video_id: str | None
     thumbnail: str
-    unlocked: bool
     duration: int
+    unlocked: bool = False
 
     class Config:
         orm_mode = True
@@ -66,6 +66,18 @@ class PaginatedVideos(BaseResponse):
 class PaginatedEpisodes(BaseResponse):
     next_token: int
     data: list[Episode]
+
+
+class AboutResp(BaseResponse):
+    _defaults = {
+        "telephone": "19001009",
+        "email": "support.cremussic@gmail.com",
+        "address": "Số 7, ngõ Hội Phụ - Đông Hội - Đông Anh - Hà Nội"
+    }
+    telephone: str = _defaults["telephone"]
+    email: str = _defaults["email"]
+    address: str = _defaults["address"]
+
 
 
 class NotFountResponse(BaseResponse):

@@ -4,6 +4,7 @@ from pydantic.types import SecretStr
 
 
 class Settings(BaseSettings):
+    debug: bool = False
     tz: timezone = timezone(timedelta(hours=7))
     pg_host: str = "localhost"
     pg_port: int = 5432

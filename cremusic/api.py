@@ -1,12 +1,11 @@
 from fastapi import Depends
 from fastapi.routing import APIRouter
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from cremusic.models import req, resp, db
-from cremusic.db import get_session
+from cremusic.db import get_session, autocommit
 
 api_router = APIRouter(prefix="/v1")
 index_router = APIRouter()
@@ -41,6 +40,20 @@ def get_book(ses: Session, book_id: int):
     return book
 
 
+def get_episode(ses: Session, episode_id: int):
+    ep = ses.execute(
+        select(db.Episode).where(db.Episode.id == episode_id)
+    ).scalar()
+    if not ep:
+        raise HTTPException(
+            status_code=404,
+            detail=resp.NotFountResponse(
+                messages=[f"Episode {episode_id} not found"]
+            ).dict()
+        )
+    return ep
+
+
 def check_book_code(ses, book_id: int, book_code: str):
     # check if book code is valid
     book_code_exists = ses.execute(
@@ -60,15 +73,28 @@ def check_book_code(ses, book_id: int, book_code: str):
         )
 
 
+def get_paginated_video_resp(
+    videos: list[db.Video],
+    book_code: str | None = None,
+):
+    unlocked = bool(book_code)
+    paginated_data: list[resp.Video] = []
+    for video in videos:
+        obj = resp.Video.from_orm(video)
+        obj.unlocked = unlocked
+        if not unlocked:
+            obj.link = None
+            obj.video_id = None
+        paginated_data.append(obj)
+    return resp.PaginatedVideos(
+        next_token=paginated_data[-1].id if paginated_data else 0,
+        data=paginated_data,
+    )
+
+
 @index_router.get("/tokenInfo")
 def get_token_info():
     """Get token info"""
-    pass
-
-
-@index_router.get("/")
-def get_index():
-    """Get index"""
     pass
 
 
@@ -81,34 +107,40 @@ def book_code(
     code = body.book_code
     book_id = body.book_id
     book_code_exists = (
-        ses.query(db.BookCode)
+        ses.query(db.BookCode.id)
         .where(db.BookCode.code == code, db.BookCode.book_id == book_id)
-        .exists()
+        .limit(1)
         .scalar()
     )
     if book_code_exists:
         # find existing by telephone and code
-        ses.begin()
         obj = ses.query(
             db.StatisticLog.telephone == body.telephone,
             db.StatisticLog.code == code
         ).first()
-        if obj:
-            # update
-            if not obj.telephone:
-                obj.telephone = body.telephone
-            if not obj.code:
-                obj.code = code
-            ses.add(obj)
-        else:
-            # create new
-            ses.add(
-                db.StatisticLog(telephone=body.telephone, code=code, name=body.name) # type: ignore
-            )
-        ses.commit()
-    return resp.CheckBookCodeResponse(
-        valid=book_code_exists,
-    )
+        with autocommit(ses):
+            if obj:
+                # update
+                if not obj.telephone:
+                    obj.telephone = body.telephone
+                if not obj.code:
+                    obj.code = code
+                ses.add(obj)
+            else:
+                # create new
+                ses.add(
+                    db.StatisticLog(
+                        telephone=body.telephone,
+                        code=code,
+                        name=body.name
+                    )
+                )
+    return resp.CheckBookCodeResponse(valid=bool(book_code_exists))
+
+
+@api_router.post("/admin/config")
+def admin_config(body: req.BookCodeConfigReq):
+    pass
 
 
 @api_router.get("/books", response_model=resp.PaginatedBooks)
@@ -165,19 +197,38 @@ def get_book_videos(
         .limit(query.limit)
         .all()
     )
+    return get_paginated_video_resp(videos, query.book_code)
 
-    unlocked = bool(query.book_code)
-    paginated_data = []
-    for video in videos:
-        video.unlocked = unlocked
-        if not unlocked:
-            video.link = None
-            video.video_id = None
-        paginated_data.append(resp.Video.from_orm(video))
-    return resp.PaginatedVideos(
-        next_token=videos[-1].id if videos else 0,
-        data=paginated_data,
+
+@api_router.get("/episodes/{episode_id}/videos")
+def get_episode_videos(
+    episode_id: int,
+    query: req.PaginationWithBookCode = Depends(req.PaginationWithBookCode),
+    ses: Session = Depends(get_session),
+):
+    """Get videos by episode id"""
+    episode = get_episode(ses, episode_id)
+    # get global config
+    config = get_global_config(ses)
+
+    # if book code is provided, check if it is valid
+    if query.book_code:
+        if config.required_unlock or config.global_code != query.book_code:
+            # check if book code is valid
+            check_book_code(ses, episode.book_id, query.book_code)
+    # list episodes by book id
+    # count total videos of each episode
+    videos = (
+        ses.query(db.Video)
+        .where(
+            db.Video.book_episode_id == episode_id,
+            db.Video.id > query.next_token,
+        )
+        .order_by(db.Video.id.asc())
+        .limit(query.limit)
+        .all()
     )
+    return get_paginated_video_resp(videos, query.book_code)
 
 
 @api_router.get("/books/{book_id}/episodes", response_model=resp.PaginatedEpisodes)
@@ -229,19 +280,7 @@ def get_book_episodes(
     )
 
 
-
-@api_router.post("/admin/config")
-def admin_config(body: req.BookCodeConfigReq):
-    pass
-
-
-@api_router.get("/episodes/{episode_id}/videos")
-def get_episode_videos(episode_id: int):
-    """Get videos by episode id"""
-    pass
-
-
 @api_router.get("/contact")
-def get_contact():
+def get_contact() -> resp.AboutResp:
     """Get contact info"""
-    pass
+    return resp.AboutResp()

@@ -1,6 +1,7 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy import func
 
 from cremusic.utils import now
 from cremusic.db import Base
@@ -32,7 +33,7 @@ class Book(Base):
 
     created_by: Mapped[str] = mapped_column(String(256), default="system")
     created_date: Mapped[datetime] = mapped_column(
-        default_factory=now
+        server_default=func.now()
     )
 
     modified_by: Mapped[str | None] = mapped_column(
@@ -62,7 +63,7 @@ class Episode(Base):
 
     created_by: Mapped[str] = mapped_column(String(256), default="system")
     created_date: Mapped[datetime] = mapped_column(
-        default_factory=now
+        server_default=func.now()
     )
 
     modified_by: Mapped[str | None] = mapped_column(
@@ -76,21 +77,11 @@ class Episode(Base):
     )
 
 
-# class Pokemon(Base):
-#     __tablename__ = "pokemon"
-#     id: Mapped[int] = mapped_column(primary_key=True)
-#     name: Mapped[str] = mapped_column(String(256))
-#     type: Mapped[str] = mapped_column(String(256))
-#     created_by: Mapped[str] = mapped_column(String(256))
-#     created_date: Mapped[datetime] = mapped_column()
-#     modified_by: Mapped[str] = mapped_column(String(256))
-#     modified_date: Mapped[datetime] = mapped_column(
-#         default_factory=now
-#     )
-
-
 class StatisticLog(Base):
     __tablename__  = "statistic_log"
+    __table_args__ = (
+        UniqueConstraint("telephone", "code"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(256))
     code: Mapped[str] = mapped_column(String(64))
