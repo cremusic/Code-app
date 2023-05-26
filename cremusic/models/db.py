@@ -1,101 +1,104 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, SmallInteger, String, UniqueConstraint, BigInteger
 from sqlalchemy.orm import mapped_column, Mapped
 from sqlalchemy import func
 
-from cremusic.utils import now
 from cremusic.db import Base
 
-class BookCodeConfig(Base):
-    __tablename__ = "config"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    required_unlock: Mapped[bool]
-    global_code: Mapped[str]
-    secret: Mapped[str]
+
+class _Common:
+    id: Mapped[int] = mapped_column(BigInteger(), primary_key=True)
 
 
-class BookCode(Base):
-    __tablename__ = "book_code"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    serial: Mapped[str] = mapped_column(unique=True)
-    book_id: Mapped[int] = mapped_column(ForeignKey("book.id"))
-    code: Mapped[str] = mapped_column(unique=True)
-    release_version: Mapped[str]
-
-
-class Book(Base):
+class Book(_Common, Base):
     __tablename__ = "book"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    type: Mapped[str] = mapped_column(String(32))
-    name: Mapped[str] = mapped_column(String(256))
-    background_image_url: Mapped[str] = mapped_column(String(1024))
-    background_color_code: Mapped[str]
-
-    created_by: Mapped[str] = mapped_column(String(256), default="system")
+    type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    background_image_url: Mapped[str | None] = mapped_column(
+        String(1024), default=None, nullable=True
+    )
+    background_color_code: Mapped[int | None] = mapped_column(
+        SmallInteger(), default=None, nullable=True
+    )
     created_date: Mapped[datetime] = mapped_column(
         server_default=func.now()
     )
-
+    created_by: Mapped[str] = mapped_column(String(256), server_default="system")
     modified_by: Mapped[str | None] = mapped_column(
-        String(256),
-        nullable=True,
-        default=None
+        String(256), nullable=True, default=None
     )
     modified_date: Mapped[datetime | None] = mapped_column(
-        nullable=True,
-        default=None
+        nullable=True, default=None
     )
 
 
-class Episode(Base):
-    __tablename__ = "book_episode"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    book_id: Mapped[int] = mapped_column(ForeignKey("book.id"))
+class BookCodeConfig(_Common, Base):
+    __tablename__ = "config"
+    required_unlock: Mapped[bool | None] = mapped_column(nullable=True, default=None)
+    global_code: Mapped[str | None] = mapped_column(
+        String(250),
+        nullable=True,
+        default=None
+    )
+    secret: Mapped[str] = mapped_column(String(250), nullable=True, default=None)
 
+
+class BookCode(_Common, Base):
+    __tablename__ = "book_code"
+    serial: Mapped[str] = mapped_column(String(64), unique=True)
+    book_id: Mapped[int] = mapped_column(BigInteger(), ForeignKey("book.id"))
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    release_version: Mapped[str] = mapped_column(String(64))
+
+
+
+class Episode(_Common, Base):
+    __tablename__ = "book_episode"
+    book_id: Mapped[int] = mapped_column(BigInteger(), ForeignKey("book.id"))
     name: Mapped[str | None] = mapped_column(String(256))
-    author: Mapped[str | None] = mapped_column(String(256), default="")
-    artist: Mapped[str | None] = mapped_column(String(256), default="")
+    author: Mapped[str | None] = mapped_column(String(256), server_default="")
+    artist: Mapped[str | None] = mapped_column(String(256), server_default="")
     background_image_url: Mapped[str | None] = mapped_column(
         String(1024),
         default=None
     )
     background_color_code: Mapped[int | None] = mapped_column(default=None)
 
-    created_by: Mapped[str] = mapped_column(String(256), default="system")
-    created_date: Mapped[datetime] = mapped_column(
-        server_default=func.now()
-    )
+    created_by: Mapped[str] = mapped_column(String(128), server_default="system")
+    created_date: Mapped[datetime] = mapped_column(server_default=func.now())
 
     modified_by: Mapped[str | None] = mapped_column(
-        String(256),
+        String(128),
         nullable=True,
         default=None
     )
-    modified_date: Mapped[datetime | None] = mapped_column(
-        nullable=True,
-        default=None
-    )
+    modified_date: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
 
 
-class StatisticLog(Base):
+class StatisticLog(_Common, Base):
     __tablename__  = "statistic_log"
     __table_args__ = (
         UniqueConstraint("telephone", "code"),
     )
-    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(256))
     code: Mapped[str] = mapped_column(String(64))
     telephone: Mapped[str] = mapped_column(String(16))
-    email: Mapped[str | None] = mapped_column(String(256), default=None)
+    email: Mapped[str | None] = mapped_column(String(256), nullable=True, default=None)
 
 
-class Video(Base):
+class Video(_Common, Base):
     __tablename__ = "book_episode_video"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    book_episode_id: Mapped[int] = mapped_column(ForeignKey("book_episode.id"))
+    book_episode_id: Mapped[int] = mapped_column(
+        BigInteger(),
+        ForeignKey("book_episode.id")
+    )
     video_id: Mapped[str] = mapped_column(String(64))
 
-    name: Mapped[str | None] = mapped_column(String(1024))
-    link: Mapped[str | None] = mapped_column(String(1024))
-    thumbnail: Mapped[str | None] = mapped_column(String(1024))
-    duration: Mapped[int] = mapped_column(default=0)
+    name: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    link: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    thumbnail: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    duration: Mapped[int] = mapped_column(
+        BigInteger(),
+        nullable=True,
+        server_default="0"
+    )

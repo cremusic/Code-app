@@ -1,8 +1,10 @@
+from typing import overload
 from fastapi import Depends
 from fastapi.routing import APIRouter
 from fastapi.exceptions import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from starlette.responses import JSONResponse
 
 from cremusic.models import req, resp, db
 from cremusic.db import get_session, autocommit
@@ -11,18 +13,27 @@ api_router = APIRouter(prefix="/v1")
 index_router = APIRouter()
 
 
-def get_global_config(ses: Session):
+@overload
+def get_global_config(ses: Session, raise_on_not_found=True) -> db.BookCodeConfig:
+    ...
+
+
+@overload
+def get_global_config(ses: Session, raise_on_not_found=False) -> db.BookCodeConfig | None:
+    ...
+
+
+def get_global_config(ses: Session, raise_on_not_found: bool=True):
     # get global config
-    config = ses.execute(
-        select(db.BookCodeConfig).limit(1)
-    ).scalar()
+    config = ses.execute(select(db.BookCodeConfig).limit(1)).scalar()
     if not config:
-        raise HTTPException(
-            status_code=500,
-            detail=resp.ServerErrorResponse(
-                messages=["Global config not found"]
-            ).dict()
-        )
+        if raise_on_not_found:
+            raise HTTPException(
+                status_code=500,
+                detail=resp.ServerErrorResponse(
+                    messages=["Global config not found"]
+                ).dict()
+            )
     return config
 
 
@@ -139,8 +150,26 @@ def book_code(
 
 
 @api_router.post("/admin/config")
-def admin_config(body: req.BookCodeConfigReq):
-    pass
+def admin_config(
+    body: req.BookCodeConfigReq,
+    ses: Session = Depends(get_session),
+):
+    config = get_global_config(ses)
+    if config.secret != body.secret:
+        raise HTTPException(
+            status_code=403,
+            detail=resp.ForbiddenResponse(
+                messages=["Invalid secret"]
+            ).dict()
+        )
+    if body.global_code:
+        config.global_code = body.global_code
+    if body.required_unlock is not None:
+        config.required_unlock = body.required_unlock
+    with autocommit(ses):
+        ses.add(config)
+    return JSONResponse(status_code=204, content=None)
+
 
 
 @api_router.get("/books", response_model=resp.PaginatedBooks)
@@ -158,9 +187,14 @@ def get_books(
         .order_by(db.Book.id.asc())
     )
     books = ses.execute(query).scalars().all()
+    config = get_global_config(ses, raise_on_not_found=False)
+    if config:
+        required_unlock = bool(config.required_unlock)
+    else:
+        required_unlock = False
     return resp.PaginatedBooks(
         next_token=books[-1].id if books else 0,
-        required_unlock=False,
+        required_unlock=required_unlock,
         data=[resp.Book.from_orm(book) for book in books],
     )
 

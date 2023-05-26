@@ -7087,18 +7087,6 @@ COPY public.config (id, required_unlock, global_code, secret) FROM stdin;
 
 
 --
--- Data for Name: flyway_schema_history; Type: TABLE DATA; Schema: public; Owner: admin
---
-
-COPY public.flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, installed_on, execution_time, success) FROM stdin;
-1	1.0.0	init	SQL	V1.0.0__init.sql	-499159034	admin	2022-02-28 16:31:28.109175	1563	t
-2	1.0.1	migrate	SQL	V1.0.1__migrate.sql	-1837064167	admin	2022-02-28 16:31:31.352275	885	t
-3	1.0.2	migrate book code	SQL	V1.0.2__migrate_book_code.sql	-560166542	admin	2022-02-28 16:31:33.5575	40407	t
-4	1.1.1	config	SQL	V1.1.1__config.sql	-1939943342	admin	2022-02-28 16:32:15.039493	601	t
-\.
-
-
---
 -- Data for Name: statistic_log; Type: TABLE DATA; Schema: public; Owner: admin
 --
 

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     tz: timezone = timezone(timedelta(hours=7))
     pg_host: str = "localhost"
     pg_port: int = 5432
-    pg_user: str = "postgres"
+    pg_user: str = "admin"
     pg_password: SecretStr = SecretStr("mypassword")
     pg_dbname: str = "pokemon"
 

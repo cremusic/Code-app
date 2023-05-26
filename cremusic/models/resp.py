@@ -88,3 +88,8 @@ class NotFountResponse(BaseResponse):
 class ServerErrorResponse(BaseResponse):
     code: str = "server_error"
     messages: list[str] = ["Internal server error"]
+
+
+class ForbiddenResponse(BaseResponse):
+    code: str = "forbidden"
+    messages: list[str] = ["Forbidden"]

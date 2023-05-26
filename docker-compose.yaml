@@ -13,3 +13,4 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
       - POSTGRES_PASSWORD=mypassword
       - POSTGRES_DB=pokemon
+      - POSTGRES_USER=admin
