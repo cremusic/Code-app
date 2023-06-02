@@ -18,6 +18,7 @@ class Book(BaseResponse):
     background_color_code: int
     name: str
     type: str
+    not_require_unlock: bool | None
 
     class Config:
         orm_mode = True

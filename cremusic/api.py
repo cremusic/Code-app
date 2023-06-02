@@ -84,11 +84,28 @@ def check_book_code(ses, book_id: int, book_code: str):
         )
 
 
+def check_book_unlocked(
+    ses: Session, config: db.BookCodeConfig, book: db.Book, book_code: str | None
+) -> bool:
+    # book may have not_require_unlock flag set to true, in this case,
+    # book code is not required (ignore global config)
+    unlocked = False
+    if book.not_require_unlock:
+        unlocked = True
+    else:
+        # if book code is provided, check if it is valid
+        if book_code:
+            if config.required_unlock or config.global_code != book_code:
+                # check if book code is valid
+                check_book_code(ses, book.id, book_code)
+            unlocked = True
+    return unlocked
+
+
 def get_paginated_video_resp(
     videos: list[db.Video],
-    book_code: str | None = None,
+    unlocked: bool,
 ):
-    unlocked = bool(book_code)
     paginated_data: list[resp.Video] = []
     for video in videos:
         obj = resp.Video.from_orm(video)
@@ -171,7 +188,6 @@ def admin_config(
     return JSONResponse(status_code=204, content=None)
 
 
-
 @api_router.get("/books", response_model=resp.PaginatedBooks)
 def get_books(
     paging: req.PaginationParams = Depends(req.PaginationParams),
@@ -207,15 +223,12 @@ def get_book_videos(
 ):
     """Get videos by book id"""
     # get the book by book id
-    get_book(ses, book_id)
+    book = get_book(ses, book_id)
     # get global config
     config = get_global_config(ses)
 
-    # if book code is provided, check if it is valid
-    if query.book_code:
-        if config.required_unlock or config.global_code != query.book_code:
-            # check if book code is valid
-            check_book_code(ses, book_id, query.book_code)
+    video_unlocked = check_book_unlocked(ses, config, book, query.book_code)
+
     # list episodes by book id
     # count total videos of each episode
     videos = (
@@ -231,7 +244,7 @@ def get_book_videos(
         .limit(query.limit)
         .all()
     )
-    return get_paginated_video_resp(videos, query.book_code)
+    return get_paginated_video_resp(videos, video_unlocked)
 
 
 @api_router.get("/episodes/{episode_id}/videos")
@@ -245,11 +258,7 @@ def get_episode_videos(
     # get global config
     config = get_global_config(ses)
 
-    # if book code is provided, check if it is valid
-    if query.book_code:
-        if config.required_unlock or config.global_code != query.book_code:
-            # check if book code is valid
-            check_book_code(ses, episode.book_id, query.book_code)
+    video_unlocked = check_book_unlocked(ses, config, episode.book, query.book_code)
     # list episodes by book id
     # count total videos of each episode
     videos = (
@@ -262,7 +271,7 @@ def get_episode_videos(
         .limit(query.limit)
         .all()
     )
-    return get_paginated_video_resp(videos, query.book_code)
+    return get_paginated_video_resp(videos, video_unlocked)
 
 
 @api_router.get("/books/{book_id}/episodes", response_model=resp.PaginatedEpisodes)
@@ -273,18 +282,11 @@ def get_book_episodes(
 ):
     """Get episodes by book id"""
     # get the book by book id
-    get_book(ses, book_id)
+    book = get_book(ses, book_id)
     # get global config
     config = get_global_config(ses)
 
-    # FIXME: bellow seems incorrect, it should be if the book is required to unlock,
-    # then check if the book code is provided and valid
-
-    # if book code is provided, check if it is valid
-    if query.book_code:
-        if config.required_unlock or config.global_code != query.book_code:
-            # check if book code is valid
-            check_book_code(ses, book_id, query.book_code)
+    unlocked = check_book_unlocked(ses, config, book, query.book_code)
     # list episodes by book id
     # count total videos of each episode
     episodes = (
@@ -302,7 +304,6 @@ def get_book_episodes(
         .all()
     )
 
-    unlocked = bool(query.book_code)
     paginated_data = []
     for episode, total_videos in episodes:
         episode.total_videos = total_videos

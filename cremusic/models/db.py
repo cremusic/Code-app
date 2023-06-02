@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import ForeignKey, SmallInteger, String, UniqueConstraint, BigInteger
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import func
 
 from cremusic.db import Base
@@ -30,6 +30,7 @@ class Book(_Common, Base):
     modified_date: Mapped[datetime | None] = mapped_column(
         nullable=True, default=None
     )
+    not_require_unlock: Mapped[bool | None] = mapped_column(nullable=True, default=None)
 
 
 class BookCodeConfig(_Common, Base):
@@ -51,10 +52,10 @@ class BookCode(_Common, Base):
     release_version: Mapped[str] = mapped_column(String(64))
 
 
-
 class Episode(_Common, Base):
     __tablename__ = "book_episode"
     book_id: Mapped[int] = mapped_column(BigInteger(), ForeignKey("book.id"))
+    book: Mapped[Book] = relationship("Book", backref="episodes")
     name: Mapped[str | None] = mapped_column(String(256))
     author: Mapped[str | None] = mapped_column(String(256), server_default="")
     artist: Mapped[str | None] = mapped_column(String(256), server_default="")
