@@ -11,6 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ADD ./requirements /requirements
 RUN pip install -r /requirements/base.txt
+# copy sqladmin static files to /var/app/statics for hosting those using nginx
+RUN mkdir -p /var/app/statics
+RUN cp -r /usr/local/lib/python3.11/site-packages/sqladmin/statics /var/app/statics/sqladmin
+RUN ls /usr/local/lib/python3.11/site-packages/sqladmin/statics/
+RUN ls /var/app/statics/sqladmin/
+
 ADD ./cremusic /var/app/cremusic
 WORKDIR /var/app
-CMD ["uvicorn", "cremusic.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "cremusic.admin:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
