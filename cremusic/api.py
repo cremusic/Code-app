@@ -142,10 +142,14 @@ def book_code(
     )
     if book_code_exists:
         # find existing by telephone and code
-        obj = ses.query(
-            db.StatisticLog.telephone == body.telephone,
-            db.StatisticLog.code == code
-        ).first()
+        obj = ses.execute(
+            select(db.StatisticLog)
+            .where(
+                db.StatisticLog.telephone == body.telephone,
+                db.StatisticLog.code == code
+            )
+            .limit(1)
+        ).scalar()
         with autocommit(ses):
             if obj:
                 # update
