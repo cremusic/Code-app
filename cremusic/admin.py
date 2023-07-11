@@ -68,52 +68,55 @@ def register():
 
 @register()
 class BookAdmin(ModelView, model=Book):
-    column_list = (Book.id, Book.name)
+    column_list = "__all__"
+    column_details_list = "__all__"
+    column_searchable_list = (
+        Book.name,
+    )
 
 
 @register()
 class EpisodeAdmin(ModelView, model=Episode):
-    column_list = (
-        Episode.id,
+    column_list = "__all__"
+    column_details_list = "__all__"
+    column_searchable_list = (
         Episode.name,
         Episode.book_id,
+        Episode.artist,
+        Episode.author,
     )
 
 
 @register()
 class VideoAdmin(ModelView, model=Video):
-    column_list = (
-        Video.id,
+    column_list = "__all__"
+    column_details_list = "__all__"
+    column_searchable_list = (
         Video.name,
-        Video.book_episode_id
+        Video.link,
     )
 
 
 @register()
 class CodeConfigAdmin(ModelView, model=BookCodeConfig):
-    column_list = (
-        BookCodeConfig.id,
-        BookCodeConfig.global_code,
-        BookCodeConfig.required_unlock,
-        BookCodeConfig.secret,
-    )
+    column_list = "__all__"
+    column_details_list = "__all__"
 
 
 @register()
 class CodeAdmin(ModelView, model=BookCode):
-    column_list = (
-        BookCode.id,
-        BookCode.code,
-        BookCode.book_id,
-    )
+    column_list = "__all__"
+    column_details_list = "__all__"
 
 
 @register()
 class StatisticLogAdmin(ModelView, model=StatisticLog):
-    column_list = (
-        StatisticLog.id,
+    column_list = "__all__"
+    column_details_list = "__all__"
+    column_searchable_list = (
         StatisticLog.code,
         StatisticLog.email,
         StatisticLog.name,
         StatisticLog.telephone,
     )
+    column_default_sort = ("id", True)

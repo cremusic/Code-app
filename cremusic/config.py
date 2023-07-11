@@ -4,8 +4,8 @@ from pydantic.types import SecretStr
 
 
 class Settings(BaseSettings):
-    debug: bool = True
     tz: timezone = timezone(timedelta(hours=7))
+    debug: bool = Field(False, env="DEBUG")
     pg_host: str = Field("localhost", env="POSTGRES_HOST")
     pg_port: int = 5432
     pg_user: str = Field("admin", env="POSTGRES_USER")

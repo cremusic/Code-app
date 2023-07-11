@@ -128,7 +128,7 @@ def get_token_info():
 
 @api_router.post("/book/book-code", response_model=resp.CheckBookCodeResponse)
 def book_code(
-    body: req.VerifyCodeRequest = Depends(req.VerifyCodeRequest),
+    body: req.VerifyCodeRequest,
     ses: Session = Depends(get_session),
 ):
     """Check code of book and update statistics"""
