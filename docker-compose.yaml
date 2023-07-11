@@ -30,6 +30,7 @@ services:
     volumes:
       # mount /var/app/statics/sqladmin from container to a named volume
       - "sqladmin-statics:/var/app/statics/sqladmin"
+      - "images:/var/app/cremusic/static/images"
       - ./alembic.ini:/var/app/alembic.ini
 
   nginx:
@@ -37,14 +38,15 @@ services:
     volumes:
       - "./nginx.conf:/etc/nginx/conf.d/default.conf:ro"
       - "sqladmin-statics:/var/app/statics/sqladmin:ro"
+      - "images:/var/app/statics/images:ro"
     ports:
       - "80:80"
     restart: "always"
     depends_on:
       - cremusic
 
-
 volumes:
   sqladmin-statics:
+  images:
 
 # vim:set et sw=2 ts=2 tw=120 ft=docker-compose.yaml:
