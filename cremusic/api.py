@@ -95,8 +95,9 @@ def check_book_unlocked(
         unlocked = True
     else:
         # if book code is provided, check if it is valid
+        print(f"{book_code=} {config.required_unlock=} {config.global_code=}")
         if book_code:
-            if config.required_unlock or config.global_code != book_code:
+            if config.required_unlock and config.global_code != book_code:
                 # check if book code is valid
                 check_book_code(ses, book.id, book_code)
             unlocked = True
