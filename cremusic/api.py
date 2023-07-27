@@ -1,5 +1,6 @@
 from typing import overload
-from fastapi import Depends
+from typing_extensions import Annotated
+from fastapi import Depends, Header
 from fastapi.routing import APIRouter
 from fastapi.exceptions import HTTPException
 from sqlalchemy import func, select
@@ -222,7 +223,8 @@ def get_books(
 @api_router.get("/books/{book_id}/videos")
 def get_book_videos(
     book_id: int,
-    query: req.PaginationWithBookCode = Depends(req.PaginationWithBookCode),
+    book_code: Annotated[str | None, Header(alias="bookCode")] = None,
+    query: req.PaginationParams = Depends(req.PaginationParams),
     ses: Session = Depends(get_session),
 ):
     """Get videos by book id"""
@@ -231,7 +233,7 @@ def get_book_videos(
     # get global config
     config = get_global_config(ses)
 
-    video_unlocked = check_book_unlocked(ses, config, book, query.book_code)
+    video_unlocked = check_book_unlocked(ses, config, book, book_code)
 
     # list episodes by book id
     # count total videos of each episode
@@ -254,7 +256,8 @@ def get_book_videos(
 @api_router.get("/episodes/{episode_id}/videos")
 def get_episode_videos(
     episode_id: int,
-    query: req.PaginationWithBookCode = Depends(req.PaginationWithBookCode),
+    book_code: Annotated[str | None, Header(alias="bookCode")] = None,
+    query: req.PaginationParams = Depends(req.PaginationParams),
     ses: Session = Depends(get_session),
 ):
     """Get videos by episode id"""
@@ -262,7 +265,7 @@ def get_episode_videos(
     # get global config
     config = get_global_config(ses)
 
-    video_unlocked = check_book_unlocked(ses, config, episode.book, query.book_code)
+    video_unlocked = check_book_unlocked(ses, config, episode.book, book_code)
     # list episodes by book id
     # count total videos of each episode
     videos = (
@@ -281,7 +284,8 @@ def get_episode_videos(
 @api_router.get("/books/{book_id}/episodes", response_model=resp.PaginatedEpisodes)
 def get_book_episodes(
     book_id: int,
-    query: req.PaginationWithBookCode = Depends(req.PaginationWithBookCode),
+    book_code: Annotated[str | None, Header(alias="bookCode")] = None,
+    query: req.PaginationParams = Depends(req.PaginationParams),
     ses: Session = Depends(get_session),
 ):
     """Get episodes by book id"""
@@ -290,7 +294,7 @@ def get_book_episodes(
     # get global config
     config = get_global_config(ses)
 
-    unlocked = check_book_unlocked(ses, config, book, query.book_code)
+    unlocked = check_book_unlocked(ses, config, book, book_code)
     # list episodes by book id
     # count total videos of each episode
     episodes = (
