@@ -68,8 +68,11 @@ def register():
 
 @register()
 class BookAdmin(ModelView, model=Book):
-    column_list = "__all__"
+    column_exclude_list = ["episodes"]
     column_details_list = "__all__"
+    form_excluded_columns = [
+        "episodes", "modified_date", "modified_by", "created_date", "created_by"
+    ]
     column_searchable_list = (
         Book.name,
     )

@@ -32,6 +32,9 @@ class Book(_Common, Base):
     )
     not_require_unlock: Mapped[bool | None] = mapped_column(nullable=True, default=None)
 
+    def __str__(self) -> str:
+        return f"{self.id} - {self.name}"
+
 
 class BookCodeConfig(_Common, Base):
     __tablename__ = "config"
@@ -74,6 +77,9 @@ class Episode(_Common, Base):
         default=None
     )
     modified_date: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
+
+    def __str__(self):
+        return f"{self.id} - {self.name}"
 
 
 class StatisticLog(_Common, Base):
