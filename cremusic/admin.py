@@ -80,14 +80,15 @@ class BookAdmin(ModelView, model=Book):
 
 @register()
 class EpisodeAdmin(ModelView, model=Episode):
-    column_list = "__all__"
-    column_details_list = "__all__"
+    column_exclude_list = ['videos']
+    column_details_exclude_list = ['videos']
     column_searchable_list = (
         Episode.name,
         Episode.book_id,
         Episode.artist,
         Episode.author,
     )
+    form_excluded_columns = ['videos']
 
 
 @register()

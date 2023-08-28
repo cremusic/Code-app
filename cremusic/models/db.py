@@ -79,7 +79,7 @@ class Episode(_Common, Base):
     modified_date: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
 
     def __str__(self):
-        return f"{self.id} - {self.name}"
+        return f"{self.id} - {self.name} (book {self.book_id})"
 
 
 class StatisticLog(_Common, Base):
@@ -99,6 +99,7 @@ class Video(_Common, Base):
         BigInteger(),
         ForeignKey("book_episode.id")
     )
+    episode = relationship("Episode", backref="videos")
     video_id: Mapped[str] = mapped_column(String(64))
 
     name: Mapped[str | None] = mapped_column(String(1024), nullable=True)
@@ -109,3 +110,6 @@ class Video(_Common, Base):
         nullable=True,
         server_default="0"
     )
+
+    def __str__(self):
+        return f"{self.id} - {self.name} (episode {self.book_episode_id})"
