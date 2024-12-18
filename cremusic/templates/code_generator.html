@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Codes</title>
+    <style>
+        /* General Page Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        /* Header Styles */
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        /* Form Styles */
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        /* Label Styles */
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        /* Input Styles */
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* Button Styles */
+        button {
+            width: 100%;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Paragraph Styles */
+        p {
+            text-align: center;
+            color: #555;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generate Codes</h1>
+    <p>Selected Book IDs: <strong>{{ book_ids }}</strong></p>
+    <form method="post" action="/admin/book/generate_codes">
+        <!-- Hidden Input for Book IDs -->
+        <input type="hidden" name="book_ids" value="{{ book_ids }}">
+
+        <!-- Input for Number of Codes -->
+        <label for="num_codes">Number of Codes to Generate:</label>
+        <input type="number" id="num_codes" name="num_codes" min="1" required>
+
+        <!-- Input for Version -->
+        <label for="version">Version to Generate:</label>
+        <input type="text" id="version" name="version" placeholder="Enter version (e.g., v1.0)" required>
+
+        <!-- Submit Button -->
+        <button type="submit">Generate Codes</button>
+    </form>
+</body>
+</html>

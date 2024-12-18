@@ -7,9 +7,9 @@ class BookCodeGenerator:
 
     def __init__(self, db: Session):
         self.db = db
-        self.serial_length = 5
-        self.serial_prefix = 'BOOK'
-        self.code_length = 10
+        self.serial_length = 7
+        self.serial_prefix = 'MCRC'
+        self.code_length = 6
         self.value_range = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
     def generate_random_code(self, chars: str, length: int):
