@@ -44,6 +44,22 @@ services:
     depends_on:
       - cremusic
 
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    volumes:
+      - ./cremusic/static/images:/srv
+    expose:
+      - "8080"
+    env_file:
+      - .env
+    environment:
+      - FB_PORT=8080
+      - FB_USERNAME=${ADMIN_USERNAME}
+      - FB_PASSWORD=${ADMIN_FILE_BROWSER_PASSWORD}
+      - FB_BASEURL=/admin/filemanager/images
+    restart: always
+
 volumes:
   sqladmin-statics:
 
