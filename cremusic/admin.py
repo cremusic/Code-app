@@ -160,6 +160,18 @@ class StatisticLogAdmin(ModelView, model=StatisticLog):
 
 
 @register()
+class FileManagerView(BaseView):
+    name = "File Manager"
+    icon = "fa-solid fa-folder-open"
+
+    @expose("/filemanagerview", methods=["GET"])
+    async def file_manager(self, request: Request):
+        return RedirectResponse(
+            url="/admin/filemanager/images", status_code=302
+        )
+
+
+@register()
 class GeneratorCodeView(BaseView):
     include_in_schema = False
 
